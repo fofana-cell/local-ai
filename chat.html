@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Local AI</title>
+<style>
+  :root {
+    --bg: #080b14;
+    --glow1: rgba(99, 102, 241, .28);
+    --glow2: rgba(168, 85, 247, .20);
+    --glow3: rgba(34, 211, 238, .12);
+    --glass: rgba(255, 255, 255, .05);
+    --glass-strong: rgba(255, 255, 255, .08);
+    --border: rgba(255, 255, 255, .10);
+    --text: #eef1f8;
+    --muted: #9aa3b8;
+    --accent: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    --accent-solid: #7c6cf6;
+    --me-bubble: linear-gradient(135deg, #5b5ff0 0%, #9a4df0 100%);
+    --me-text: #ffffff;
+    --ai-bubble: rgba(255, 255, 255, .07);
+    --code-bg: #05070d;
+    --code-text: #dbe4f3;
+    --ok: #34d399;
+    --bad: #f87171;
+    --shadow: 0 10px 40px rgba(0, 0, 0, .35);
+  }
+  [data-theme="light"] {
+    --bg: #f4f5fb;
+    --glow1: rgba(99, 102, 241, .16);
+    --glow2: rgba(168, 85, 247, .12);
+    --glow3: rgba(34, 211, 238, .10);
+    --glass: rgba(255, 255, 255, .75);
+    --glass-strong: rgba(255, 255, 255, .95);
+    --border: rgba(20, 24, 40, .10);
+    --text: #1a1e2c;
+    --muted: #6a7287;
+    --ai-bubble: #ffffff;
+    --code-bg: #12161f;
+    --shadow: 0 10px 30px rgba(40, 50, 90, .12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px 500px at 10% -10%, var(--glow1), transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, var(--glow2), transparent 60%),
+      radial-gradient(700px 500px at 50% 110%, var(--glow3), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    display: flex; justify-content: center;
+  }
+
+  .app {
+    width: 100%; max-width: 900px; height: 100vh;
+    display: flex; flex-direction: column; padding: 18px 18px 14px;
+  }
+
+  /* ---------- header ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 14px; background: var(--accent);
+    display: grid; place-items: center; box-shadow: 0 6px 22px rgba(124, 108, 246, .55);
+  }
+  .logo svg { width: 24px; height: 24px; color: #fff; }
+  .brand h1 { margin: 0; font-size: 21px; letter-spacing: .2px; }
+  .brand h1 span {
+    background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .brand small { color: var(--muted); font-size: 12.5px; }
+  .tools { display: flex; gap: 8px; align-items: center; }
+  select, .iconbtn {
+    background: var(--glass); color: var(--text); border: 1px solid var(--border);
+    border-radius: 12px; padding: 9px 12px; font-size: 14px; cursor: pointer;
+    backdrop-filter: blur(10px); transition: .2s;
+    font-family: inherit;
+  }
+  select option { color: #111; }
+  select:hover, .iconbtn:hover { border-color: var(--accent-solid); transform: translateY(-1px); }
+  .iconbtn { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ---------- badges ---------- */
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 12px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted);
+    background: var(--glass); border: 1px solid var(--border); padding: 5px 11px; border-radius: 999px;
+    backdrop-filter: blur(10px);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 0 0 rgba(52, 211, 153, .7); animation: pulse 2s infinite; }
+  .dot.bad { background: var(--bad); }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, .6); }
+    70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+  }
+
+  /* ---------- chat area ---------- */
+  #chat {
+    flex: 1; overflow-y: auto; padding: 18px 8px 8px;
+    display: flex; flex-direction: column; gap: 18px;
+    scroll-behavior: smooth;
+  }
+  #chat::-webkit-scrollbar { width: 8px; }
+  #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+
+  .hero { margin: auto; text-align: center; max-width: 520px; animation: fade .6s ease; }
+  .orb {
+    width: 92px; height: 92px; margin: 0 auto 20px; border-radius: 50%;
+    background: var(--accent); filter: blur(.3px);
+    box-shadow: 0 0 60px rgba(124, 108, 246, .65), inset 0 0 30px rgba(255, 255, 255, .25);
+    display: grid; place-items: center; animation: float 4s ease-in-out infinite;
+  }
+  .orb svg { width: 42px; height: 42px; color: #fff; }
+  @keyframes float { 50% { transform: translateY(-10px); } }
+  .hero h2 { margin: 0 0 8px; font-size: 30px; }
+  .hero h2 span { background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: 0; color: var(--muted); line-height: 1.5; }
+  .chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 26px; }
+  .chip {
+    text-align: left; background: var(--glass); border: 1px solid var(--border); color: var(--text);
+    padding: 13px 15px; border-radius: 14px; cursor: pointer; font-size: 14px; font-family: inherit;
+    backdrop-filter: blur(10px); transition: .2s; line-height: 1.35;
+  }
+  .chip b { display: block; font-size: 12px; color: var(--accent-solid); margin-bottom: 3px; letter-spacing: .4px; }
+  .chip:hover { transform: translateY(-3px); border-color: var(--accent-solid); box-shadow: var(--shadow); }
+
+  /* ---------- messages ---------- */
+  .row { display: flex; gap: 11px; align-items: flex-start; animation: fade .35s ease; }
+  .row.me { flex-direction: row-reverse; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .avatar {
+    flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .row.ai .avatar { background: var(--accent); box-shadow: 0 4px 14px rgba(124, 108, 246, .45); }
+  .row.ai .avatar svg { width: 19px; height: 19px; }
+  .row.me .avatar { background: linear-gradient(135deg, #0ea5e9, #22d3ee); }
+  .bubble { max-width: min(78%, 640px); padding: 12px 16px; line-height: 1.6; font-size: 15.5px; word-wrap: break-word; }
+  .row.me .bubble {
+    background: var(--me-bubble); color: var(--me-text); border-radius: 18px 4px 18px 18px;
+    box-shadow: 0 8px 24px rgba(124, 92, 240, .35); white-space: pre-wrap;
+  }
+  .row.ai .bubble {
+    background: var(--ai-bubble); border: 1px solid var(--border); border-radius: 4px 18px 18px 18px;
+    backdrop-filter: blur(12px);
+  }
+  .bubble code.inline { background: rgba(127, 127, 160, .25); padding: 1px 6px; border-radius: 6px; font-family: Consolas, monospace; font-size: 90%; }
+  .codebox { position: relative; margin: 10px 0; }
+  .codebox pre {
+    margin: 0; background: var(--code-bg); color: var(--code-text); padding: 14px; border-radius: 12px;
+    overflow-x: auto; font-family: Consolas, "Cascadia Code", monospace; font-size: 13.5px; line-height: 1.5;
+    border: 1px solid rgba(255, 255, 255, .08); white-space: pre;
+  }
+  .copy {
+    position: absolute; top: 8px; right: 8px; font-size: 11.5px; cursor: pointer; font-family: inherit;
+    background: rgba(255, 255, 255, .12); color: #fff; border: none; border-radius: 7px; padding: 4px 9px;
+    transition: .2s;
+  }
+  .copy:hover { background: rgba(255, 255, 255, .25); }
+
+  .dots { display: inline-flex; gap: 5px; padding: 6px 2px; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s infinite; }
+  .dots i:nth-child(2) { animation-delay: .15s; }
+  .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-6px); opacity: 1; } }
+
+  /* ---------- composer ---------- */
+  .composer {
+    display: flex; align-items: flex-end; gap: 10px; margin-top: 10px; padding: 9px 9px 9px 16px;
+    background: var(--glass-strong); border: 1px solid var(--border); border-radius: 22px;
+    box-shadow: var(--shadow); backdrop-filter: blur(14px); transition: .2s;
+  }
+  .composer:focus-within { border-color: var(--accent-solid); box-shadow: 0 0 0 3px rgba(124, 108, 246, .25), var(--shadow); }
+  textarea {
+    flex: 1; resize: none; border: none; outline: none; background: transparent; color: var(--text);
+    font-family: inherit; font-size: 16px; line-height: 1.5; padding: 8px 0; height: 40px; max-height: 150px;
+  }
+  textarea::placeholder { color: var(--muted); }
+  #send {
+    flex: none; width: 44px; height: 44px; border: none; border-radius: 16px; cursor: pointer; color: #fff;
+    background: var(--accent); display: grid; place-items: center; transition: .2s;
+    box-shadow: 0 6px 18px rgba(124, 108, 246, .5);
+  }
+  #send:hover { transform: scale(1.07); }
+  #send.stop { background: linear-gradient(135deg, #ef4444, #f97316); box-shadow: 0 6px 18px rgba(239, 68, 68, .45); }
+  #send svg { width: 20px; height: 20px; }
+  footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  @media (max-width: 560px) {
+    .bubble { max-width: 86%; }
+    .hero h2 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>
+      </div>
+      <div>
+        <h1>My <span>Local AI</span></h1>
+        <small>Private · Offline · Runs on your computer</small>
+      </div>
+    </div>
+    <div class="tools">
+      <select id="model" title="Choose a model"></select>
+      <button class="iconbtn" id="newChat" title="Start a new chat">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New chat
+      </button>
+      <button class="iconbtn" id="theme" title="Dark / light">☀️</button>
+    </div>
+  </header>
+
+  <div class="badges">
+    <span class="badge"><span class="dot" id="dotAI"></span><span id="txtAI">Checking AI...</span></span>
+    <span class="badge"><span class="dot" id="dotNet"></span><span id="txtNet">Internet</span></span>
+    <span class="badge">🔒 Your questions never leave this computer</span>
+  </div>
+
+  <div id="chat"></div>
+
+  <div class="composer">
+    <textarea id="q" rows="1" placeholder="Ask me anything..."></textarea>
+    <button id="send" title="Send"></button>
+  </div>
+  <footer>Powered by Ollama in Docker · Enter to send · Shift+Enter for a new line</footer>
+</div>
+
+<script>
+const OLLAMA = "http://localhost:11434";
+const chat = document.getElementById("chat");
+const q = document.getElementById("q");
+const modelSel = document.getElementById("model");
+const sendBtn = document.getElementById("send");
+const SYSTEM = "You are a helpful assistant. Answer clearly, in simple words, and keep answers short unless asked for more. When you write code, give the full code in a code block.";
+
+const ICON_SEND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+const ICON_STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+const ICON_BOT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/></svg>';
+
+let history = [];
+let controller = null;
+let busy = false;
+
+/* ---------- helpers ---------- */
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function render(text) {
+  const parts = esc(text).split("```");
+  return parts.map((p, i) => {
+    if (i % 2 === 1) {
+      const code = p.replace(/^[a-zA-Z0-9+#-]*\n/, "");
+      return '<div class="codebox"><button class="copy">Copy</button><pre>' + code + "</pre></div>";
+    }
+    return p
+      .replace(/`([^`\n]+)`/g, '<code class="inline">$1</code>')
+      .replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>")
+      .replace(/\n/g, "<br>");
+  }).join("");
+}
+
+function showEmpty() {
+  chat.innerHTML = "";
+  const hero = document.createElement("div");
+  hero.className = "hero";
+  hero.innerHTML =
+    '<div class="orb">' + ICON_BOT + "</div>" +
+    "<h2>Hello! Ask me <span>anything</span></h2>" +
+    "<p>I run on your own computer, inside Docker. You can turn off the internet and I will still answer.</p>";
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  [
+    ["EXPLAIN", "What is Docker?"],
+    ["CODE", "Write a Python function that adds two numbers"],
+    ["LEARN", "Explain what an API is in simple words"]
+  ].forEach(([tag, t]) => {
+    const c = document.createElement("button");
+    c.className = "chip";
+    c.innerHTML = "<b>" + tag + "</b>" + esc(t);
+    c.onclick = () => { q.value = t; ask(); };
+    chips.appendChild(c);
+  });
+  hero.appendChild(chips);
+  chat.appendChild(hero);
+}
+
+function addMsg(role, text) {
+  const hero = chat.querySelector(".hero");
+  if (hero) hero.remove();
+  const row = document.createElement("div");
+  row.className = "row " + role;
+  const av = document.createElement("div");
+  av.className = "avatar";
+  if (role === "me") av.textContent = "You"; else av.innerHTML = ICON_BOT;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  if (role === "me") bubble.textContent = text; else bubble.innerHTML = render(text);
+  row.appendChild(av);
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+  return bubble;
+}
+
+function setBusy(b) {
+  busy = b;
+  sendBtn.innerHTML = b ? ICON_STOP : ICON_SEND;
+  sendBtn.classList.toggle("stop", b);
+  sendBtn.title = b ? "Stop" : "Send";
+}
+
+/* ---------- status badges ---------- */
+function updateNet() {
+  const on = navigator.onLine;
+  document.getElementById("dotNet").className = "dot " + (on ? "ok" : "bad");
+  document.getElementById("txtNet").textContent = on ? "Internet: on" : "Internet: OFF (still works!)";
+}
+window.addEventListener("online", updateNet);
+window.addEventListener("offline", updateNet);
+updateNet();
+
+async function loadModels() {
+  try {
+    const r = await fetch(OLLAMA + "/api/tags");
+    const data = await r.json();
+    const list = data.models.filter(m => !m.name.includes("embed"));
+    modelSel.innerHTML = "";
+    list.forEach(m => {
+      const o = document.createElement("option");
+      o.value = m.name; o.textContent = m.name;
+      modelSel.appendChild(o);
+    });
+    document.getElementById("dotAI").className = "dot ok";
+    document.getElementById("txtAI").textContent = "AI connected";
+  } catch (e) {
+    document.getElementById("dotAI").className = "dot bad";
+    document.getElementById("txtAI").textContent = "AI not reachable";
+    modelSel.innerHTML = "<option>no model</option>";
+    addMsg("ai", "I cannot reach Ollama. Open Docker Desktop, wait for \"Engine running\", then run `docker compose up -d` in the my-ai folder and refresh this page.");
+  }
+}
+
+/* ---------- ask the AI (streaming) ---------- */
+async function ask() {
+  if (busy) { if (controller) controller.abort(); return; }
+  const text = q.value.trim();
+  if (!text) return;
+  q.value = "";
+  q.style.height = "40px";
+  addMsg("me", text);
+  history.push({ role: "user", content: text });
+
+  const body = addMsg("ai", "");
+  body.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+  let answer = "";
+  controller = new AbortController();
+  setBusy(true);
+
+  try {
+    const r = await fetch(OLLAMA + "/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: modelSel.value,
+        messages: [{ role: "system", content: SYSTEM }].concat(history),
+        stream: true
+      })
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const obj = JSON.parse(line);
+        if (obj.message && obj.message.content) {
+          answer += obj.message.content;
+          body.innerHTML = render(answer);
+          chat.scrollTop = chat.scrollHeight;
+        }
+      }
+    }
+    history.push({ role: "assistant", content: answer });
+  } catch (e) {
+    if (e.name === "AbortError") {
+      body.innerHTML = render(answer + (answer ? "\n\n" : "") + "(stopped)");
+      if (answer) history.push({ role: "assistant", content: answer });
+    } else {
+      body.innerHTML = render("Error: " + e.message + ". Check that Docker and the ollama container are running.");
+    }
+  }
+  setBusy(false);
+  controller = null;
+  q.focus();
+}
+
+/* ---------- events ---------- */
+sendBtn.onclick = ask;
+q.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); }
+});
+q.addEventListener("input", () => {
+  q.style.height = "40px";
+  q.style.height = Math.min(q.scrollHeight, 150) + "px";
+});
+document.getElementById("newChat").onclick = () => {
+  if (controller) controller.abort();
+  history = [];
+  showEmpty();
+  q.focus();
+};
+document.getElementById("theme").onclick = () => {
+  const root = document.documentElement;
+  const dark = root.getAttribute("data-theme") === "dark";
+  root.setAttribute("data-theme", dark ? "light" : "dark");
+  document.getElementById("theme").textContent = dark ? "🌙" : "☀️";
+};
+chat.addEventListener("click", e => {
+  if (e.target.classList.contains("copy")) {
+    const code = e.target.nextElementSibling.textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      e.target.textContent = "Copied!";
+      setTimeout(() => (e.target.textContent = "Copy"), 1500);
+    });
+  }
+});
+
+setBusy(false);
+showEmpty();
+loadModels();
+q.focus();
+</script>
+</body>
+</html>
