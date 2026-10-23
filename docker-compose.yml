@@ -1,14 +1,21 @@
-services:
+﻿services:
   ollama:
     image: ollama/ollama
     container_name: ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     ports:
       - "11434:11434"
     environment:
       - OLLAMA_ORIGINS=*
       - OLLAMA_CONTEXT_LENGTH=65536
       - OLLAMA_FLASH_ATTENTION=1
-      - OLLAMA_KV_CACHE_TYPE=q8_0
+      - OLLAMA_KV_CACHE_TYPE=q4_0
       - OLLAMA_KEEP_ALIVE=2h
     volumes:
       - ollama_data:/root/.ollama
@@ -41,3 +48,4 @@ volumes:
   ollama_data:
   open_webui_data:
   hermes_data:
+
